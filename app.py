@@ -45,7 +45,7 @@ def get_wikipedia_link(movie_title):
 
 @app.route("/")
 def index():
-    movie_ids = [496243, 530385, 12096, 1091, 348, 9806, 244786]
+    movie_ids = [496243, 530385, 12096, 1091, 348, 9806, 244786, 545611, 785084, 82507, 558, 374720, 4964, 11031, 137]
 
     movie_id = random.choice(movie_ids)
 
