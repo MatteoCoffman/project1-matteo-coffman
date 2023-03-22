@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Discovery</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body style="background-image: url({{poster_url}});">
+    <header>
+        <h1>Movie Mixer</h1>
+    </header>
+
+    <main>
+        <div class="movie-container">
+            <div class="text-container">
+                <h1>{{ movie_data['title'] }}</h1>
+                <p><strong>Genres:</strong>
+                    {% for genre_name in genre_names_list %}
+                    {{ genre_name }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+                <p>{{ movie_data['overview'] }}</p>
+                <p><a href="{{ wikipedia_link }}">Wikipedia link</a></p>
+            </div>
+            <img src="{{ poster_url }}" alt="{{ movie_data['title'] }} poster">
+        </div>
+    </main>
+</body>
+
+</html>
