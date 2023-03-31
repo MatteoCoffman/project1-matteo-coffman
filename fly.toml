@@ -1,6 +1,6 @@
-# fly.toml file generated for rough-thunder-6621 on 2023-03-22T17:50:40-05:00
+# fly.toml file generated for project1-matteo-coffman on 2023-03-30T18:32:29-05:00
 
-app = "rough-thunder-6621"
+app = "project1-matteo-coffman"
 kill_signal = "SIGINT"
 kill_timeout = 5
 primary_region = "dfw"

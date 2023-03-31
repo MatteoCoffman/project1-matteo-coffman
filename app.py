@@ -1,66 +1,76 @@
 import os
-import random
+import uuid
 import json
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.environ['SECRET_KEY']
 
-TMDB_API_KEY = os.environ["TMDB_API_KEY"]
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-def get_movie_data(movie_id):
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={TMDB_API_KEY}"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        movie_data = json.loads(response.text)
-        return movie_data
-    else:
-        return None
+db = SQLAlchemy(app)
 
-def get_wikipedia_link(movie_title):
-    search_url = "https://en.wikipedia.org/w/api.php"
-    params = {
-        "action": "query",
-        "format": "json",
-        "list": "search",
-        "utf8": 1,
-        "formatversion": 2,
-        "srsearch": f"{movie_title} film",
-        "srlimit": 1
-    }
+class User(db.Model, UserMixin):
+    id = db.Column(db.String(100), primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
 
-    response = requests.get(search_url, params=params)
-    data = response.json()
+    def __init__(self, id, username, password):
+        self.id = id
+        self.username = username
+        self.password = password
 
-    if data["query"]["search"]:
-        page_title = data["query"]["search"][0]["title"]
-        wikipedia_link = f"https://en.wikipedia.org/wiki/{page_title.replace(' ', '_')}"
-        return wikipedia_link
-    else:
-        return None
+login_manager = LoginManager()
+login_manager.init_app(app)
 
-@app.route("/")
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return redirect(url_for('login'))
+
+def get_user(username):
+    return User.query.filter_by(username=username).first()
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        user = get_user(username)
+        if user:
+            user = User(user.id, user.username, user.password)
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            return "Invalid username", 401
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/')
+@login_required
 def index():
-    movie_ids = [496243, 530385, 12096, 1091, 348, 9806, 244786, 545611, 785084, 82507, 558, 374720, 4964, 11031, 137]
+    print(f"Current user: {current_user.username}")
+    return render_template('index.html')
 
-    movie_id = random.choice(movie_ids)
-
-    movie_data = get_movie_data(movie_id)
-    wikipedia_link = get_wikipedia_link(movie_data["title"])
-
-    base_url = "https://image.tmdb.org/t/p/"
-    poster_size = "w500"
-    poster_url = f"{base_url}{poster_size}{movie_data['poster_path']}"
-    
-    genre_names_list = []
-    for genre in movie_data["genres"]:
-        genre_names_list.append(genre["name"])
-
-    return render_template("index.html", movie_data=movie_data, wikipedia_link=wikipedia_link, poster_url=poster_url, genre_names_list=genre_names_list)
+def add_user(username, password):
+    user_id = str(uuid.uuid4())
+    new_user = User(id=user_id, username=username, password=password)
+    db.session.add(new_user)
+    db.session.commit()
 
 if __name__ == "__main__":
     app.run(debug=True)
